@@ -1,0 +1,33 @@
+{
+  "name": "CartItem",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "Reference to the product"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "product_image": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1
+    },
+    "project_label": {
+      "type": "string",
+      "description": "Optional project grouping label"
+    }
+  },
+  "required": [
+    "product_id",
+    "product_name",
+    "price",
+    "quantity"
+  ]
+}

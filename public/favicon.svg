@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- fundo escuro arredondado -->
+  <rect width="64" height="64" rx="12" fill="#1a1a1a"/>
+  <!-- aba do capacete -->
+  <rect x="8" y="40" width="48" height="7" rx="3.5" fill="#f59e0b"/>
+  <!-- cúpula do capacete -->
+  <path d="M14 41 C14 22 20 13 32 13 C44 13 50 22 50 41 Z" fill="#f59e0b"/>
+  <!-- faixa vertical central (detalhe) -->
+  <rect x="29.5" y="13" width="5" height="28" rx="2" fill="#d97706"/>
+</svg>

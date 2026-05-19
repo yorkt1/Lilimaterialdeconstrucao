@@ -1,0 +1,103 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Product name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Product description"
+    },
+    "price": {
+      "type": "number",
+      "description": "Price in BRL"
+    },
+    "original_price": {
+      "type": "number",
+      "description": "Original price before discount"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "pisos_revestimentos",
+        "tintas",
+        "ferramentas",
+        "eletrica",
+        "hidraulica",
+        "portas_janelas",
+        "iluminacao",
+        "banheiros",
+        "cozinha",
+        "jardim",
+        "madeiras",
+        "ferragens"
+      ],
+      "description": "Product category"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Product brand"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Product image URL"
+    },
+    "secondary_image_url": {
+      "type": "string",
+      "description": "Secondary product image"
+    },
+    "rating": {
+      "type": "number",
+      "description": "Product rating 1-5"
+    },
+    "review_count": {
+      "type": "number",
+      "description": "Number of reviews"
+    },
+    "in_stock": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether product is in stock"
+    },
+    "specs": {
+      "type": "object",
+      "description": "Technical specifications",
+      "properties": {
+        "weight": {
+          "type": "string"
+        },
+        "dimensions": {
+          "type": "string"
+        },
+        "material": {
+          "type": "string"
+        },
+        "warranty": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        }
+      }
+    },
+    "featured": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the product is featured"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Product tags for search"
+    }
+  },
+  "required": [
+    "name",
+    "price",
+    "category"
+  ]
+}
