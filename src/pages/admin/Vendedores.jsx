@@ -173,27 +173,37 @@ function QRCodeModal({ open, onClose, vendedor }) {
 
 const EMPTY_FORM = { nome: '', telefone: '', cargo: 'Vendedor', ativo: true };
 
+const normalizeTelefoneInput = (value) => String(value ?? '').replace(/\D/g, '').replace(/^55/, '');
+const formatWhatsAppNumber = (value) => `55${normalizeTelefoneInput(value)}`;
+
 function VendedorModal({ open, onClose, vendedor, onSaved }) {
-  const [form, setForm] = useState(vendedor ?? EMPTY_FORM);
+  const [form, setForm] = useState(vendedor ? { ...vendedor, telefone: normalizeTelefoneInput(vendedor.telefone) } : EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
-    setForm(vendedor ?? EMPTY_FORM);
+    setForm(vendedor ? { ...vendedor, telefone: normalizeTelefoneInput(vendedor.telefone) } : EMPTY_FORM);
   }, [vendedor, open]);
 
-  const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const set = (field, value) => setForm(prev => ({
+    ...prev,
+    [field]: field === 'telefone' ? normalizeTelefoneInput(value) : value,
+  }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.nome.trim()) return toast.error('Nome obrigatório');
-    if (!form.telefone.trim()) return toast.error('Telefone obrigatório');
+    const rawTelefone = normalizeTelefoneInput(form.telefone);
+    if (!rawTelefone) return toast.error('Telefone obrigatório');
+    if (![10, 11].includes(rawTelefone.length)) return toast.error('Telefone deve conter DDD + número (10 ou 11 dígitos).');
+
+    const telefone = formatWhatsAppNumber(rawTelefone);
 
     setSaving(true);
     try {
       if (vendedor?.id) {
         await api.entities.Vendedor.update(vendedor.id, {
           nome: form.nome.trim(),
-          telefone: form.telefone.replace(/\D/g, ''),
+          telefone,
           cargo: form.cargo,
           ativo: form.ativo,
         });
@@ -201,7 +211,7 @@ function VendedorModal({ open, onClose, vendedor, onSaved }) {
       } else {
         await api.entities.Vendedor.create({
           nome: form.nome.trim(),
-          telefone: form.telefone.replace(/\D/g, ''),
+          telefone,
           cargo: form.cargo,
           ativo: true,
         });
@@ -242,15 +252,16 @@ function VendedorModal({ open, onClose, vendedor, onSaved }) {
             </Label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-500">55</span>
               <Input
                 id="telefone"
                 value={form.telefone}
                 onChange={e => set('telefone', e.target.value)}
-                placeholder="5538999000000"
-                className="pl-9"
+                placeholder="389999571663"
+                className="pl-16"
               />
             </div>
-            <p className="text-xs text-gray-400">Formato: 55 + DDD + número (ex: 5538999144595)</p>
+            <p className="text-xs text-gray-400">Digite apenas DDD + número. O código 55 será adicionado automaticamente.</p>
           </div>
 
           <div className="space-y-1.5">
