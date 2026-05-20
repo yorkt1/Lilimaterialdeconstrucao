@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, ShoppingCart } from 'lucide-react';
 import { formatPrice } from '@/lib/categories';
 
 export default function ProductCard({ product }) {
   const [imgError, setImgError] = React.useState(false);
+  const imagemValida = Boolean(product.imagem?.trim());
 
   const esgotado  = product.estoque === 0;
   const ultimas   = product.estoque > 0 && product.estoque <= 3;
@@ -60,7 +61,7 @@ export default function ProductCard({ product }) {
             </span>
           )}
 
-          {product.imagem && !imgError ? (
+          {imagemValida && !imgError ? (
             <img
               src={product.imagem}
               alt={product.nome}

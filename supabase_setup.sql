@@ -7,41 +7,39 @@
 -- ── 1. Extensões ────────────────────────────────────────────
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- ── 2. Tabela: products ──────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.products (
-  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name             TEXT NOT NULL,
-  description      TEXT,
-  price            NUMERIC(10,2) NOT NULL DEFAULT 0,
-  original_price   NUMERIC(10,2),
-  category         TEXT,
-  brand            TEXT,
-  image_url        TEXT,
-  secondary_image_url TEXT,
-  in_stock         BOOLEAN NOT NULL DEFAULT true,
-  featured         BOOLEAN NOT NULL DEFAULT false,
-  rating           NUMERIC(3,1),
-  review_count     INTEGER DEFAULT 0,
-  tags             TEXT[],
-  specs            JSONB DEFAULT '{}'::JSONB,
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- ── 2. Tabela: produtos ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.produtos (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  nome              TEXT NOT NULL,
+  descricao         TEXT,
+  preco             NUMERIC(10,2),
+  preco_promocional NUMERIC(10,2),
+  categoria         TEXT,
+  marca             TEXT,
+  imagem            TEXT,
+  link              TEXT,
+  estoque           INTEGER,
+  ativo             BOOLEAN NOT NULL DEFAULT true,
+  promocao          BOOLEAN NOT NULL DEFAULT false,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Índices úteis
-CREATE INDEX IF NOT EXISTS products_category_idx ON public.products (category);
-CREATE INDEX IF NOT EXISTS products_featured_idx ON public.products (featured);
-CREATE INDEX IF NOT EXISTS products_in_stock_idx ON public.products (in_stock);
+CREATE INDEX IF NOT EXISTS produtos_categoria_idx ON public.produtos (categoria);
+CREATE INDEX IF NOT EXISTS produtos_promocao_idx ON public.produtos (promocao);
+CREATE INDEX IF NOT EXISTS produtos_ativo_idx ON public.produtos (ativo);
 
 -- ── 3. Tabela: cart_items ────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.cart_items (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id       UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  product_id    UUID REFERENCES public.products(id) ON DELETE SET NULL,
+  product_id    UUID REFERENCES public.produtos(id) ON DELETE SET NULL,
   product_name  TEXT,
   product_image TEXT,
   price         NUMERIC(10,2) NOT NULL DEFAULT 0,
   quantity      INTEGER NOT NULL DEFAULT 1,
+  created_by    TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -58,21 +56,34 @@ CREATE TABLE IF NOT EXISTS public.categories (
 
 -- ── 5. Tabela: banners ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.banners (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  title       TEXT NOT NULL,
-  subtitle    TEXT,
-  cta         TEXT DEFAULT 'Explorar',
-  category    TEXT,
-  image_url   TEXT,
-  active      BOOLEAN NOT NULL DEFAULT true,
-  sort_order  INTEGER NOT NULL DEFAULT 0,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title            TEXT NOT NULL,
+  subtitle         TEXT,
+  cta              TEXT DEFAULT 'Explorar',
+  category         TEXT,
+  image_url        TEXT,
+  mobile_image_url TEXT,
+  active           BOOLEAN NOT NULL DEFAULT true,
+  sort_order       INTEGER NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS banners_sort_order_idx ON public.banners (sort_order);
 
--- ── 6. Tabela: orders ────────────────────────────────────────
+-- ── 6. Tabela: vendedores ───────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.vendedores (
+  id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  nome           TEXT NOT NULL,
+  telefone       TEXT,
+  cargo          TEXT,
+  ativo          BOOLEAN NOT NULL DEFAULT true,
+  instance_name  TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ── 7. Tabela: orders ────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.orders (
   id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id    UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -97,7 +108,7 @@ END;
 $$;
 
 DO $$ BEGIN
-  CREATE TRIGGER set_products_updated_at BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+  CREATE TRIGGER set_produtos_updated_at BEFORE UPDATE ON public.produtos FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
@@ -110,12 +121,12 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ── 8. Row Level Security (RLS) ──────────────────────────────
 
--- products — públicos para leitura, somente autenticados gerenciam
-ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Products are public" ON public.products;
-CREATE POLICY "Products are public" ON public.products FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Authenticated can manage products" ON public.products;
-CREATE POLICY "Authenticated can manage products" ON public.products
+-- produtos — públicos para leitura, somente autenticados gerenciam
+ALTER TABLE public.produtos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Produtos are public" ON public.produtos;
+CREATE POLICY "Produtos are public" ON public.produtos FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Authenticated can manage produtos" ON public.produtos;
+CREATE POLICY "Authenticated can manage produtos" ON public.produtos
   FOR ALL USING (auth.role() = 'authenticated');
 
 -- banners — públicos para leitura
@@ -132,6 +143,14 @@ DROP POLICY IF EXISTS "Categories are public" ON public.categories;
 CREATE POLICY "Categories are public" ON public.categories FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Authenticated can manage categories" ON public.categories;
 CREATE POLICY "Authenticated can manage categories" ON public.categories
+  FOR ALL USING (auth.role() = 'authenticated');
+
+-- vendedores — autenticados gerenciam
+ALTER TABLE public.vendedores ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Vendedores are public" ON public.vendedores;
+CREATE POLICY "Vendedores are public" ON public.vendedores FOR SELECT USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated can manage vendedores" ON public.vendedores;
+CREATE POLICY "Authenticated can manage vendedores" ON public.vendedores
   FOR ALL USING (auth.role() = 'authenticated');
 
 -- cart_items — cada usuário vê e edita apenas os seus
@@ -162,7 +181,7 @@ CREATE POLICY "Auth upload" ON storage.objects
   FOR INSERT WITH CHECK (bucket_id = 'uploads' AND auth.role() = 'authenticated');
 
 -- ── 10. Dados Iniciais: Produtos ─────────────────────────────
-INSERT INTO public.products (name, description, price, category, brand, in_stock, featured, image_url)
+INSERT INTO public.produtos (nome, descricao, preco, categoria, marca, ativo, promocao, imagem)
 VALUES
   ('Cimento Votorantim 50kg', 'Cimento de alta qualidade para obras de todos os portes.', 35.90, 'materiais_construcao', 'Votorantim', true, true, 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop'),
   ('Tijolo Baiano 8 Furos', 'Tijolo cerâmico ideal para alvenaria de vedação.', 1.20, 'materiais_construcao', 'Cerâmica Local', true, false, 'https://images.unsplash.com/photo-1589939705384-5185138a0470?q=80&w=800&auto=format&fit=crop'),
