@@ -20,8 +20,10 @@ export const CATEGORIES = [
     label: 'Banheiro',
     image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779292638/121cb31b-9997-4a2f-822b-0e34ef6f8147___7424587d2d3b78e7841d80593825c991_afs7v1.webp',
   },
-  {
-    key: 'portas_janelas',
+  {    key: 'cozinha',
+    label: 'Cozinha',
+  },
+  {    key: 'portas_janelas',
     label: 'Portas e Janelas',
     image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779292638/download_yxcbye.jpg',
   },
@@ -161,11 +163,35 @@ export const CATEGORIES = [
   { key: 'outros',          label: 'Outros',               image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779290501/categorias/outros.jpg' },
 ];
 
-export const getCategoryLabel = (key) => {
-  const cat = CATEGORIES.find(c => c.key === key);
-  return cat ? cat.label : key;
+/** @type {{ [key: string]: string }} */
+const CATEGORY_ALIASES = {
+  tintas: 'tintas_acessorios',
+  banheiros: 'banheiro',
 };
 
+/**
+ * @param {string|undefined|null} key
+ * @returns {string|undefined|null}
+ */
+export const normalizeCategoryKey = (key) => {
+  if (!key) return key;
+  return CATEGORY_ALIASES[key] ?? key;
+};
+
+/**
+ * @param {string|undefined|null} key
+ * @returns {string}
+ */
+export const getCategoryLabel = (key) => {
+  const normalized = normalizeCategoryKey(key);
+  const cat = CATEGORIES.find(c => c.key === normalized);
+  return cat ? cat.label : key || '';
+};
+
+/**
+ * @param {number} price
+ * @returns {string}
+ */
 export const formatPrice = (price) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
 };

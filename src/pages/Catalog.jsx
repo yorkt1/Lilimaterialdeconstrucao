@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SlidersHorizontal, Grid3X3, LayoutGrid, ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { CATEGORIES, getCategoryLabel, formatPrice } from '@/lib/categories';
+import { CATEGORIES, getCategoryLabel, formatPrice, normalizeCategoryKey } from '@/lib/categories';
 
 const PER_PAGE = 24;
 
@@ -41,10 +41,12 @@ function buildParams(filters, sortBy, searchQuery, page) {
 
 // Retorna true se productCat é igual ou descendente de filterCat
 function inCategory(productCat, filterCat) {
-  if (!productCat || !filterCat) return false;
-  if (productCat === filterCat) return true;
-  const cat = CATEGORIES.find(c => c.key === productCat);
-  return cat?.parent ? inCategory(cat.parent, filterCat) : false;
+  const productKey = normalizeCategoryKey(productCat);
+  const filterKey = normalizeCategoryKey(filterCat);
+  if (!productKey || !filterKey) return false;
+  if (productKey === filterKey) return true;
+  const cat = CATEGORIES.find(c => c.key === productKey);
+  return cat?.parent ? inCategory(cat.parent, filterKey) : false;
 }
 
 // ── Chip de filtro ativo ──────────────────────────────────────────────────────

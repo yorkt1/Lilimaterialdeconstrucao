@@ -2,16 +2,18 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { CATEGORIES } from '@/lib/categories';
+import { CATEGORIES, normalizeCategoryKey } from '@/lib/categories';
 import ProductCard from '@/components/products/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChevronRight } from 'lucide-react';
 
 function inCategory(productCat, filterCat) {
-  if (!productCat || !filterCat) return false;
-  if (productCat === filterCat) return true;
-  const cat = CATEGORIES.find(c => c.key === productCat);
-  return cat?.parent ? inCategory(cat.parent, filterCat) : false;
+  const productKey = normalizeCategoryKey(productCat);
+  const filterKey = normalizeCategoryKey(filterCat);
+  if (!productKey || !filterKey) return false;
+  if (productKey === filterKey) return true;
+  const cat = CATEGORIES.find(c => c.key === productKey);
+  return cat?.parent ? inCategory(cat.parent, filterKey) : false;
 }
 
 const SECTIONS = [

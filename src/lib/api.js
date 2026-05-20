@@ -13,6 +13,7 @@
  */
 
 import { supabase } from './supabase';
+import { normalizeCategoryKey } from './categories';
 
 // ---------------------------------------------------------------------------
 // Utilitário — factory de CRUD genérico para uma tabela Supabase
@@ -111,7 +112,46 @@ const createEntityApi = (tableName) => {
     },
   };
 };
+const normalizeProduct = (product) => {
+  if (!product) return product;
+  const normalizedCategoria = normalizeCategoryKey(product.categoria || product.category);
+  return {
+    ...product,
+    categoria: normalizedCategoria,
+  };
+};
 
+const createProductApi = () => {
+  const generic = createEntityApi('produtos');
+
+  return {
+    ...generic,
+    list: async (sort, limit) => {
+      const data = await generic.list(sort, limit);
+      return data.map(normalizeProduct);
+    },
+    filter: async (criteria, sort, limit) => {
+      const data = await generic.filter(criteria, sort, limit);
+      return data.map(normalizeProduct);
+    },
+    create: async (data) => {
+      const payload = {
+        ...data,
+        categoria: normalizeCategoryKey(data.categoria || data.category),
+      };
+      const created = await generic.create(payload);
+      return normalizeProduct(created);
+    },
+    update: async (id, data) => {
+      const payload = {
+        ...data,
+        categoria: normalizeCategoryKey(data.categoria || data.category),
+      };
+      const updated = await generic.update(id, payload);
+      return normalizeProduct(updated);
+    },
+  };
+};
 // ---------------------------------------------------------------------------
 // API pública
 // ---------------------------------------------------------------------------
@@ -221,7 +261,7 @@ export const api = {
 
   // ── Entidades (CRUD) ──────────────────────────────────────────────────────
   entities: {
-    Product: createEntityApi('produtos'),
+    Product: createProductApi(),
     CartItem: createEntityApi('cart_items'),
     Category: createEntityApi('categories'),
     Banner: createEntityApi('banners'),
