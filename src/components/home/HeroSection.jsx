@@ -30,7 +30,8 @@ export default function HeroSection() {
   const safeCurrent = current % slides.length || 0;
   const slide = slides[safeCurrent];
   const linkUrl = slide.category ? `/catalogo?categoria=${slide.category}` : '/catalogo';
-  const imageUrl = slide.image_url;
+  const imageUrl = slide.image_url?.trim();
+  const mobileImageUrl = slide.mobile_image_url?.trim();
 
   return (
     <section className="relative w-full overflow-hidden bg-gray-100">
@@ -45,14 +46,20 @@ export default function HeroSection() {
         >
           <Link to={linkUrl} className="block w-full aspect-[3/1] md:aspect-[1920/336]">
             <picture className="w-full h-full">
-              {slide.mobile_image_url && (
-                <source media="(max-width: 767px)" srcSet={slide.mobile_image_url} />
+              {mobileImageUrl && (
+                <source media="(max-width: 767px)" srcSet={mobileImageUrl} />
               )}
-              <img
-                src={imageUrl}
-                alt={slide.title || 'Banner'}
-                className="w-full h-full object-cover block"
-              />
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={slide.title || 'Banner'}
+                  className="w-full h-full object-cover block"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500">
+                  {slide.title || 'Banner sem imagem'}
+                </div>
+              )}
             </picture>
           </Link>
         </motion.div>
