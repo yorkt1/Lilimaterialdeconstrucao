@@ -161,7 +161,7 @@ export default function Catalog() {
       r = r.filter(p => p.nome?.toLowerCase().includes(q) || p.descricao?.toLowerCase().includes(q) || p.marca?.toLowerCase().includes(q));
     }
     if (filters.marcas.length > 0)  r = r.filter(p => filters.marcas.includes(p.marca));
-    if (filters.emPromocao)          r = r.filter(p => p.promocao);
+    if (filters.emPromocao)          r = r.filter(p => p.promocao || (p.preco_promocional && p.preco_promocional < p.preco));
     if (filters.emEstoque)           r = r.filter(p => p.estoque == null || p.estoque > 0);
     r = r.filter(p => {
       const pr = getPreco(p);

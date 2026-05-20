@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/cloudinary-fetch.js)",
+      "Bash(curl -s \"https://bklqauwvhvtnuxpwhhrf.supabase.co/rest/v1/produtos?select=id,nome,imagem&order=nome.asc&limit=300\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbHFhdXd2aHZ0bnV4cHdoaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzQwMzcsImV4cCI6MjA5NDgxMDAzN30.mLARNe9PWhCx-7MEPgLgGbv0z_yUeVCOQyz-VA7I1iw\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbHFhdXd2aHZ0bnV4cHdoaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzQwMzcsImV4cCI6MjA5NDgxMDAzN30.mLARNe9PWhCx-7MEPgLgGbv0z_yUeVCOQyz-VA7I1iw\")",
+      "Bash(curl -s \"https://bklqauwvhvtnuxpwhhrf.supabase.co/rest/v1/produtos?select=categoria,promocao&limit=500\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbHFhdXd2aHZ0bnV4cHdoaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzQwMzcsImV4cCI6MjA5NDgxMDAzN30.mLARNe9PWhCx-7MEPgLgGbv0z_yUeVCOQyz-VA7I1iw\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbHFhdXd2aHZ0bnV4cHdoaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzQwMzcsImV4cCI6MjA5NDgxMDAzN30.mLARNe9PWhCx-7MEPgLgGbv0z_yUeVCOQyz-VA7I1iw\")",
+      "Bash(curl -s \"https://bklqauwvhvtnuxpwhhrf.supabase.co/rest/v1/produtos?select=nome,promocao,preco_promocional,preco&limit=500\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbHFhdXd2aHZ0bnV4cHdoaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzQwMzcsImV4cCI6MjA5NDgxMDAzN30.mLARNe9PWhCx-7MEPgLgGbv0z_yUeVCOQyz-VA7I1iw\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbHFhdXd2aHZ0bnV4cHdoaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzQwMzcsImV4cCI6MjA5NDgxMDAzN30.mLARNe9PWhCx-7MEPgLgGbv0z_yUeVCOQyz-VA7I1iw\")",
+      "Bash(python -c ' *)",
+      "Bash(curl -s \"https://bklqauwvhvtnuxpwhhrf.supabase.co/rest/v1/produtos?select=nome,preco,preco_promocional,promocao&nome=ilike.*Martelo*\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbHFhdXd2aHZ0bnV4cHdoaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzQwMzcsImV4cCI6MjA5NDgxMDAzN30.mLARNe9PWhCx-7MEPgLgGbv0z_yUeVCOQyz-VA7I1iw\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbHFhdXd2aHZ0bnV4cHdoaHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzQwMzcsImV4cCI6MjA5NDgxMDAzN30.mLARNe9PWhCx-7MEPgLgGbv0z_yUeVCOQyz-VA7I1iw\")"
+    ]
+  }
+}

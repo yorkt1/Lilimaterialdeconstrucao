@@ -1,54 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { CATEGORIES } from '@/lib/categories';
 
-const categories = [
-  {
-    key: 'materiais_construcao',
-    label: 'Materiais de Construção',
-    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1778874672/categorias/materiais_construcao.jpg',
-  },
-  {
-    key: 'pisos_revestimentos',
-    label: 'Pisos e Revestimentos',
-    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1778874673/categorias/pisos_revestimentos.jpg',
-  },
-  {
-    key: 'tintas_acessorios',
-    label: 'Tintas e Acessórios',
-    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1778874674/categorias/tintas_acessorios.jpg',
-  },
-  {
-    key: 'ferramentas',
-    label: 'Ferramentas',
-    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1778874675/categorias/ferramentas.jpg',
-  },
-  {
-    key: 'hidraulica',
-    label: 'Hidráulica',
-    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1778874676/categorias/hidraulica.jpg',
-  },
-  {
-    key: 'eletrica',
-    label: 'Elétrica',
-    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1778874677/categorias/eletrica.jpg',
-  },
-  {
-    key: 'iluminacao',
-    label: 'Iluminação',
-    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1778874677/categorias/iluminacao.jpg',
-  },
-  {
-    key: 'banheiro',
-    label: 'Banheiro',
-    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1778874678/categorias/banheiro.jpg',
-  },
-  {
-    key: 'portas_janelas',
-    label: 'Portas e Janelas',
-    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1778874679/categorias/portas_janelas.jpg',
-  },
-];
+const categories = CATEGORIES.filter(category => !category.parent && category.image);
 
 export default function CategoryShowcase() {
   return (

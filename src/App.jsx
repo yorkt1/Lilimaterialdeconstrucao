@@ -24,6 +24,7 @@ import AdminProducts from '@/pages/admin/Products';
 import AdminOrders from '@/pages/admin/Orders';
 import AdminConfiguracoes from '@/pages/admin/Configuracoes';
 import AdminVendedores from '@/pages/admin/Vendedores';
+import AdminImportar from '@/pages/admin/Importar';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -69,6 +70,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin/vendedores" element={<AdminVendedores />} />
           <Route path="/admin/configuracoes" element={<AdminConfiguracoes />} />
           <Route path="/admin/banners" element={<AdminConfiguracoes />} />
+          <Route path="/admin/importar" element={<AdminImportar />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

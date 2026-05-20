@@ -1,14 +1,50 @@
 export const CATEGORIES = [
   // ── Nível 1 ──────────────────────────────────────────────────────────────
-  { key: 'materiais_construcao',  label: 'Materiais de Construção' },
-  { key: 'pisos_revestimentos',   label: 'Pisos e Revestimentos' },
-  { key: 'tintas_acessorios',     label: 'Tintas e Acessórios' },
-  { key: 'banheiro',              label: 'Banheiro' },
-  { key: 'portas_janelas',        label: 'Portas e Janelas' },
-  { key: 'ferramentas',           label: 'Ferramentas' },
-  { key: 'eletrica',              label: 'Elétrica' },
-  { key: 'hidraulica',            label: 'Hidráulica' },
-  { key: 'iluminacao',            label: 'Iluminação' },
+  {
+    key: 'materiais_construcao',
+    label: 'Materiais de Construção',
+    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779291849/istockphoto-836219748-612x612_wologs.jpg',
+  },
+  {
+    key: 'pisos_revestimentos',
+    label: 'Pisos e Revestimentos',
+    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779292014/Pisos-e-revestimentos-min_ewybqg.jpg',
+  },
+  {
+    key: 'tintas_acessorios',
+    label: 'Tintas e Acessórios',
+    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779292639/acessorios-para-pintura-de-parede-02-1_vkqpzb.jpg',
+  },
+  {
+    key: 'banheiro',
+    label: 'Banheiro',
+    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779292638/121cb31b-9997-4a2f-822b-0e34ef6f8147___7424587d2d3b78e7841d80593825c991_afs7v1.webp',
+  },
+  {
+    key: 'portas_janelas',
+    label: 'Portas e Janelas',
+    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779292638/download_yxcbye.jpg',
+  },
+  {
+    key: 'ferramentas',
+    label: 'Ferramentas',
+    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779292638/download_1_yclbtb.jpg',
+  },
+  {
+    key: 'eletrica',
+    label: 'Elétrica',
+    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779292638/images_zno7bq.jpg',
+  },
+  {
+    key: 'hidraulica',
+    label: 'Hidráulica',
+    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779292639/0ef32390553b45570bcda80c51101bc3_o1pnbw.png',
+  },
+  {
+    key: 'iluminacao',
+    label: 'Iluminação',
+    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779290496/categorias/iluminacao.jpg',
+  },
 
   // ── Materiais de Construção → Nível 2 ────────────────────────────────────
   { key: 'alvenaria',             label: 'Alvenaria',                       parent: 'materiais_construcao' },
@@ -95,6 +131,34 @@ export const CATEGORIES = [
   { key: 'ferramentas_jardinagem',  label: 'Ferramentas Para Jardinagem',    parent: 'ferramentas' },
   { key: 'geradores',               label: 'Geradores',                      parent: 'ferramentas' },
   { key: 'instrumentos_medicao',    label: 'Instrumentos de Medição',        parent: 'ferramentas' },
+
+  // ── Elétrica → Nível 2 ──────────────────────────────────────────────────
+  { key: 'fios_cabos',              label: 'Fios e Cabos',                   parent: 'eletrica' },
+  { key: 'disjuntores_quadros',     label: 'Disjuntores e Quadros',          parent: 'eletrica' },
+  { key: 'tomadas_interruptores',   label: 'Tomadas e Interruptores',        parent: 'eletrica' },
+  { key: 'eletrodutos',             label: 'Eletrodutos e Conduítes',        parent: 'eletrica' },
+
+  // ── Hidráulica → Nível 2 ────────────────────────────────────────────────
+  { key: 'pvc_colas',               label: 'PVC e Colas',                    parent: 'hidraulica' },
+  { key: 'registros_valvulas',      label: 'Registros e Válvulas',           parent: 'hidraulica' },
+  { key: 'tubos_conexoes',          label: 'Tubos e Conexões',               parent: 'hidraulica' },
+  { key: 'caixas_dagua',            label: 'Caixas D\'água e Cisternas',     parent: 'hidraulica' },
+
+  // ── Iluminação → Nível 2 ────────────────────────────────────────────────
+  { key: 'lampadas',                label: 'Lâmpadas',                       parent: 'iluminacao' },
+  { key: 'luminárias',              label: 'Luminárias',                     parent: 'iluminacao' },
+  { key: 'fitas_led',               label: 'Fitas LED',                      parent: 'iluminacao' },
+
+  // ── Materiais de Construção → complementos ───────────────────────────────
+  { key: 'estrutural',              label: 'Materiais Estruturais',          parent: 'materiais_construcao' },
+
+  // ── Categorias adicionais (nível 1) ─────────────────────────────────────
+  { key: 'ferragens',      label: 'Ferragens',             image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779290497/categorias/ferragens.jpg' },
+  { key: 'jardim',         label: 'Jardim e Áreas Externas', image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779290497/categorias/jardim.jpg' },
+  { key: 'seguranca',      label: 'Segurança',             image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779290498/categorias/seguranca.jpg' },
+  { key: 'soldagem',       label: 'Soldagem',              image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779290499/categorias/soldagem.jpg' },
+  { key: 'moveis_armarios', label: 'Móveis e Armários',   image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779290500/categorias/moveis_armarios.jpg' },
+  { key: 'outros',          label: 'Outros',               image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779290501/categorias/outros.jpg' },
 ];
 
 export const getCategoryLabel = (key) => {
