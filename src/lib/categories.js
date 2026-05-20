@@ -38,7 +38,7 @@ export const CATEGORIES = [
   {
     key: 'hidraulica',
     label: 'Hidráulica',
-    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779292639/0ef32390553b45570bcda80c51101bc3_o1pnbw.png',
+    image: 'https://res.cloudinary.com/dckhuy9ny/image/upload/v1779293133/tipos-canos_q8xrfy.jpg',
   },
   {
     key: 'iluminacao',
