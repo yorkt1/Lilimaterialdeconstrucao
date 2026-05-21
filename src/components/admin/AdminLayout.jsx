@@ -46,7 +46,7 @@ export default function AdminLayout() {
       `}>
         {/* Cabeçalho da sidebar */}
         <div className="flex items-center justify-between px-5 h-16 border-b border-white/10 flex-shrink-0">
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link to="/admin" className="flex items-center gap-2.5 group">
             <div className="w-7 h-7 bg-primary rounded flex items-center justify-center flex-shrink-0">
               <Store className="h-4 w-4 text-gray-900" />
             </div>
@@ -130,6 +130,8 @@ export default function AdminLayout() {
 
           <Link
             to="/"
+            target="_blank"
+            rel="noopener noreferrer"
             className="ml-auto flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors font-medium"
           >
             <Store className="h-4 w-4" />
