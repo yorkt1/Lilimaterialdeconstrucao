@@ -33,6 +33,9 @@ export const evolutionApi = {
   getStatus: (instanceName) =>
     request('GET', `/instance/connectionState/${instanceName}`),
 
+  logoutInstance: (instanceName) =>
+    request('DELETE', `/instance/logout/${instanceName}`),
+
   deleteInstance: (instanceName) =>
     request('DELETE', `/instance/delete/${instanceName}`),
 
