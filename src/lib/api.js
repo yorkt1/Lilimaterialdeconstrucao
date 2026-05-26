@@ -269,6 +269,31 @@ export const api = {
     Vendedor: createEntityApi('vendedores'),
   },
 
+  // ── Configurações (tabela: configuracoes — linha única) ───────────────────
+  config: {
+    get: async (campo) => {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select(campo)
+        .single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data?.[campo] ?? null;
+    },
+    set: async (campo, valor) => {
+      const { data: existing } = await supabase
+        .from('configuracoes')
+        .select('id')
+        .single();
+      if (existing?.id) {
+        const { error } = await supabase
+          .from('configuracoes')
+          .update({ [campo]: valor })
+          .eq('id', existing.id);
+        if (error) throw error;
+      }
+    },
+  },
+
   // ── Integrações ───────────────────────────────────────────────────────────
   integrations: {
     Core: {

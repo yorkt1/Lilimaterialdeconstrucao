@@ -3,10 +3,11 @@ import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { evolutionApi } from '@/lib/evolutionApi';
+import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import {
   LayoutDashboard, Package, ShoppingBag, Settings, Menu, X,
-  LogOut, ChevronRight, Store, Users, MessageCircle, Power, Loader2, RefreshCw,
+  LogOut, ChevronRight, Store, Users, MessageCircle, Power, Loader2, RefreshCw, PauseCircle, PlayCircle,
 } from 'lucide-react';
 
 const INSTANCE = import.meta.env.VITE_EVOLUTION_INSTANCE_NAME || 'lili-materiais';
@@ -24,7 +25,6 @@ function WhatsAppBotPanel() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Polling sempre ativo a cada 8s para o header refletir o estado real
   const { data: statusData, isLoading: loadingStatus } = useQuery({
     queryKey: ['whatsapp-status'],
     queryFn: () => evolutionApi.getStatus(INSTANCE),
@@ -33,12 +33,18 @@ function WhatsAppBotPanel() {
     throwOnError: false,
   });
 
-  // Evolution API pode retornar state ou connectionStatus dependendo da versão
+  const { data: pausedValue } = useQuery({
+    queryKey: ['bot-paused'],
+    queryFn: () => api.config.get('bot_pausado'),
+    refetchInterval: 10000,
+    throwOnError: false,
+  });
+  const paused = pausedValue === true;
+
   const instanceState =
     statusData?.instance?.state ??
     statusData?.instance?.connectionStatus ??
-    statusData?.state ??
-    null;
+    statusData?.state ?? null;
   const connected = instanceState === 'open';
 
   const { data: qrData, isLoading: loadingQR, refetch: refetchQR } = useQuery({
@@ -52,59 +58,76 @@ function WhatsAppBotPanel() {
       }
     },
     enabled: open && !connected && !loadingStatus,
-    // QR expira em ~60s — recarrega a cada 20s enquanto modal está aberto
     refetchInterval: open && !connected ? 20000 : false,
     retry: false,
     throwOnError: false,
   });
 
+  const { mutate: togglePause, isPending: togglingPause } = useMutation({
+    mutationFn: () => api.config.set('bot_pausado', !paused),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bot-paused'] });
+      toast.success(paused ? 'Bot retomado' : 'Bot pausado');
+    },
+    onError: () => toast.error('Erro ao alterar estado do bot'),
+  });
+
   const { mutate: disconnect, isPending: disconnecting } = useMutation({
-    mutationFn: () => evolutionApi.logoutInstance(INSTANCE),
+    mutationFn: () => evolutionApi.disconnectAndDelete(INSTANCE),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
       queryClient.invalidateQueries({ queryKey: ['whatsapp-qr'] });
-      toast.success('Robô desconectado');
+      queryClient.invalidateQueries({ queryKey: ['bot-paused'] });
+      api.config.set('bot_pausado', false).catch(() => {});
+      toast.success('Bot desconectado e instância removida');
     },
     onError: (err) => toast.error('Erro ao desconectar: ' + err.message),
   });
 
   const qrBase64 = qrData?.base64 ?? qrData?.qrcode?.base64;
 
+  const headerColor = !connected
+    ? 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
+    : paused
+    ? 'border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+    : 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100';
+
+  const dotColor = !connected ? 'bg-gray-300' : paused ? 'bg-yellow-400' : 'bg-green-500';
+
+  const headerLabel = !connected ? 'Bot offline' : paused ? 'Bot pausado' : 'Bot ativo';
+
   return (
     <>
-      {/* Botão de status no header */}
       <button
         onClick={() => setOpen(true)}
         title="WhatsApp Bot"
-        className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors ${
-          connected
-            ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
-            : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
-        }`}
+        className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors ${headerColor}`}
       >
         <MessageCircle className="h-4 w-4" />
-        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${connected ? 'bg-green-500' : 'bg-gray-300'}`} />
-        <span className="hidden sm:inline">
-          {connected ? 'Bot ativo' : 'Bot offline'}
-        </span>
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
+        <span className="hidden sm:inline">{headerLabel}</span>
       </button>
 
-      {/* Modal */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
 
-            {/* Header do modal */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div className="flex items-center gap-2.5">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${connected ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  <MessageCircle className={`h-4 w-4 ${connected ? 'text-green-600' : 'text-gray-400'}`} />
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  !connected ? 'bg-gray-100' : paused ? 'bg-yellow-100' : 'bg-green-100'
+                }`}>
+                  <MessageCircle className={`h-4 w-4 ${
+                    !connected ? 'text-gray-400' : paused ? 'text-yellow-600' : 'text-green-600'
+                  }`} />
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 text-sm">WhatsApp Bot</p>
-                  <p className={`text-[11px] font-medium ${connected ? 'text-green-600' : 'text-gray-400'}`}>
-                    {loadingStatus && !statusData ? 'Verificando...' : connected ? 'Conectado' : 'Desconectado'}
+                  <p className={`text-[11px] font-medium ${
+                    !connected ? 'text-gray-400' : paused ? 'text-yellow-600' : 'text-green-600'
+                  }`}>
+                    {loadingStatus && !statusData ? 'Verificando...' : headerLabel}
                   </p>
                 </div>
               </div>
@@ -113,7 +136,6 @@ function WhatsAppBotPanel() {
               </button>
             </div>
 
-            {/* Conteúdo */}
             <div className="p-5">
               {loadingStatus && !statusData ? (
                 <div className="flex flex-col items-center justify-center py-10 gap-3 text-gray-400">
@@ -121,26 +143,61 @@ function WhatsAppBotPanel() {
                   <p className="text-sm">Verificando conexão...</p>
                 </div>
               ) : connected ? (
-                /* ── Conectado ── */
-                <div className="flex flex-col items-center gap-5 py-4">
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                    <MessageCircle className="h-10 w-10 text-green-500" />
+                <div className="flex flex-col items-center gap-4 py-2">
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center ${paused ? 'bg-yellow-100' : 'bg-green-100'}`}>
+                    {paused
+                      ? <PauseCircle className="h-10 w-10 text-yellow-500" />
+                      : <MessageCircle className="h-10 w-10 text-green-500" />
+                    }
                   </div>
+
                   <div className="text-center">
-                    <p className="font-semibold text-gray-900">Robô ativo</p>
-                    <p className="text-sm text-gray-500 mt-1">WhatsApp conectado e respondendo clientes.</p>
+                    <p className="font-semibold text-gray-900">
+                      {paused ? 'Bot pausado' : 'Robô ativo'}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {paused
+                        ? 'O bot está conectado mas não responde clientes.'
+                        : 'WhatsApp conectado e respondendo clientes.'}
+                    </p>
                   </div>
-                  <button
-                    onClick={() => disconnect()}
-                    disabled={disconnecting}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50 text-sm font-semibold transition-colors disabled:opacity-60"
-                  >
-                    {disconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
-                    Desligar / Desconectar
-                  </button>
+
+                  {/* Botões de ação */}
+                  <div className="flex flex-col gap-2.5 w-full">
+                    {/* Pausar / Retomar */}
+                    <button
+                      onClick={() => togglePause()}
+                      disabled={togglingPause}
+                      className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-colors disabled:opacity-60 ${
+                        paused
+                          ? 'border-green-200 text-green-700 hover:bg-green-50'
+                          : 'border-yellow-200 text-yellow-700 hover:bg-yellow-50'
+                      }`}
+                    >
+                      {togglingPause ? <Loader2 className="h-4 w-4 animate-spin" /> : paused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
+                      {paused ? 'Retomar bot' : 'Pausar bot'}
+                    </button>
+
+                    {/* Desconectar e remover instância */}
+                    <button
+                      onClick={() => {
+                        if (!confirm('Desconectar o WhatsApp e remover a instância? Você precisará escanear o QR Code novamente para reconectar.')) return;
+                        disconnect();
+                      }}
+                      disabled={disconnecting}
+                      className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50 text-sm font-semibold transition-colors disabled:opacity-60"
+                    >
+                      {disconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                      Desconectar e remover instância
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-gray-400 text-center">
+                    "Pausar" mantém o WhatsApp conectado mas para as respostas automáticas.<br />
+                    "Desconectar" encerra a sessão e apaga a instância.
+                  </p>
                 </div>
               ) : (
-                /* ── Desconectado — QR Code ── */
                 <div className="flex flex-col items-center gap-4">
                   <p className="text-sm text-gray-600 text-center">
                     Escaneie o QR Code com o WhatsApp do celular da loja para conectar o robô.

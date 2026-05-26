@@ -39,6 +39,12 @@ export const evolutionApi = {
   deleteInstance: (instanceName) =>
     request('DELETE', `/instance/delete/${instanceName}`),
 
+  // Desconecta o WhatsApp e remove a instância completamente
+  disconnectAndDelete: async (instanceName) => {
+    try { await request('DELETE', `/instance/logout/${instanceName}`); } catch {}
+    return request('DELETE', `/instance/delete/${instanceName}`);
+  },
+
   fetchInstances: () =>
     request('GET', '/instance/fetchInstances'),
 };
