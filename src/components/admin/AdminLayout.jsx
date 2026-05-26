@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
@@ -47,6 +47,28 @@ function WhatsAppBotPanel() {
     statusData?.state ?? null;
   const connected = instanceState === 'open';
 
+  // Detecta mudança de conexão e sincroniza bot_pausado no Supabase
+  const prevConnectedRef = useRef(null);
+  useEffect(() => {
+    // Só age após o primeiro status real (evita disparar na montagem)
+    if (loadingStatus && !statusData) return;
+    const prev = prevConnectedRef.current;
+    if (prev === null) {
+      prevConnectedRef.current = connected;
+      return;
+    }
+    if (prev === connected) return;
+    prevConnectedRef.current = connected;
+
+    if (!connected) {
+      // Instância desconectada ou deletada (de qualquer lugar)
+      api.config.set('bot_pausado', true).catch(() => {});
+    } else {
+      // Reconectou — retoma o bot automaticamente
+      api.config.set('bot_pausado', false).catch(() => {});
+    }
+  }, [connected, loadingStatus, statusData]);
+
   const { data: qrData, isLoading: loadingQR, refetch: refetchQR } = useQuery({
     queryKey: ['whatsapp-qr'],
     queryFn: async () => {
@@ -78,7 +100,7 @@ function WhatsAppBotPanel() {
       queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
       queryClient.invalidateQueries({ queryKey: ['whatsapp-qr'] });
       queryClient.invalidateQueries({ queryKey: ['bot-paused'] });
-      api.config.set('bot_pausado', false).catch(() => {});
+      api.config.set('bot_pausado', true).catch(() => {});
       toast.success('Bot desconectado e instância removida');
     },
     onError: (err) => toast.error('Erro ao desconectar: ' + err.message),
