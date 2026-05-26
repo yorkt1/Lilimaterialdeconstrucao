@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { evolutionApi } from '@/lib/evolutionApi';
-import { Plus, Pencil, Trash2, Search, CheckCircle, XCircle, Phone, User, QrCode, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, CheckCircle, XCircle, Phone, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -10,166 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
 const CARGOS = ['Vendedor', 'Atendente', 'Gerente', 'Caixa', 'Estoquista', 'Outro'];
-
-// ── Modal QR Code Evolution API ──────────────────────────────────────────────
-function QRCodeModal({ open, onClose, vendedor }) {
-  const [status, setStatus] = useState('idle'); // idle | loading | qr | connected | error
-  const [qrBase64, setQrBase64] = useState(null);
-  const [errorMsg, setErrorMsg] = useState('');
-  const pollRef = useRef(null);
-  const queryClient = useQueryClient();
-
-  const instanceName = vendedor ? toInstanceName(vendedor.nome) : '';
-
-  const stopPolling = () => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = null;
-  };
-
-  const startPolling = (name) => {
-    stopPolling();
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await evolutionApi.getStatus(name);
-        const state = res?.instance?.connectionStatus ?? res?.instance?.state ?? res?.state;
-        if (state === 'open') {
-          setStatus('connected');
-          stopPolling();
-          // Salva apenas o instance_name — api_key e url ficam na tabela configuracoes
-          await api.entities.Vendedor.update(vendedor.id, {
-            instance_name: instanceName,
-          }).catch(() => {});
-          queryClient.invalidateQueries({ queryKey: ['evolution-instances'] });
-          queryClient.invalidateQueries({ queryKey: ['admin-vendedores'] });
-        }
-      } catch {
-        // ignora erros de polling
-      }
-    }, 4000);
-  };
-
-  const connect = async () => {
-    setStatus('loading');
-    setQrBase64(null);
-    setErrorMsg('');
-    try {
-      // Tenta criar a instância (ignora erro se já existir)
-      try { await evolutionApi.createInstance(instanceName); } catch {}
-
-      const res = await evolutionApi.getQRCode(instanceName);
-      const base64 = res?.base64 ?? res?.qrcode?.base64 ?? res?.qr;
-
-      if (!base64) throw new Error('QR code não retornado pela API');
-
-      setQrBase64(base64);
-      setStatus('qr');
-      startPolling(instanceName);
-    } catch (err) {
-      setErrorMsg(err.message);
-      setStatus('error');
-    }
-  };
-
-  useEffect(() => {
-    if (open) {
-      setStatus('idle');
-      setQrBase64(null);
-      setErrorMsg('');
-    } else {
-      stopPolling();
-    }
-    return () => stopPolling();
-  }, [open]);
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="font-bold text-lg flex items-center gap-2">
-            <QrCode className="h-5 w-5" />
-            Conectar WhatsApp
-          </DialogTitle>
-        </DialogHeader>
-
-        {vendedor && (
-          <p className="text-sm text-gray-500">
-            Vendedor: <span className="font-semibold text-gray-800">{vendedor.nome}</span>
-          </p>
-        )}
-
-        <div className="flex flex-col items-center gap-4 py-2">
-          {status === 'idle' && (
-            <>
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                <QrCode className="h-8 w-8 text-gray-400" />
-              </div>
-              <p className="text-sm text-gray-500 text-center">
-                Clique em "Gerar QR Code" para conectar o WhatsApp deste vendedor ao bot.
-              </p>
-              <Button
-                onClick={connect}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold"
-              >
-                Gerar QR Code
-              </Button>
-            </>
-          )}
-
-          {status === 'loading' && (
-            <>
-              <Loader2 className="h-10 w-10 text-primary animate-spin" />
-              <p className="text-sm text-gray-500">Gerando QR code...</p>
-            </>
-          )}
-
-          {status === 'qr' && qrBase64 && (
-            <>
-              <img
-                src={qrBase64.startsWith('data:') ? qrBase64 : `data:image/png;base64,${qrBase64}`}
-                alt="QR Code WhatsApp"
-                className="w-56 h-56 border border-gray-200 rounded-lg"
-              />
-              <p className="text-sm text-gray-500 text-center">
-                Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo → escaneie o QR code.
-              </p>
-              <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg w-full justify-center">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Aguardando conexão...
-              </div>
-              <Button variant="outline" size="sm" onClick={connect} className="w-full">
-                Gerar novo QR code
-              </Button>
-            </>
-          )}
-
-          {status === 'connected' && (
-            <>
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <Wifi className="h-8 w-8 text-green-600" />
-              </div>
-              <p className="font-semibold text-green-700">WhatsApp conectado!</p>
-              <p className="text-sm text-gray-500 text-center">
-                O WhatsApp de <strong>{vendedor?.nome}</strong> está conectado ao bot.
-              </p>
-            </>
-          )}
-
-          {status === 'error' && (
-            <>
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                <WifiOff className="h-8 w-8 text-red-500" />
-              </div>
-              <p className="text-sm text-red-600 text-center">{errorMsg}</p>
-              <Button onClick={connect} variant="outline" className="w-full">
-                Tentar novamente
-              </Button>
-            </>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 const EMPTY_FORM = { nome: '', telefone: '', cargo: 'Vendedor', ativo: true };
 
@@ -207,7 +46,7 @@ function VendedorModal({ open, onClose, vendedor, onSaved }) {
           cargo: form.cargo,
           ativo: form.ativo,
         });
-        toast.success('vendedor atualizado');
+        toast.success('Vendedor atualizado');
       } else {
         await api.entities.Vendedor.create({
           nome: form.nome.trim(),
@@ -215,7 +54,7 @@ function VendedorModal({ open, onClose, vendedor, onSaved }) {
           cargo: form.cargo,
           ativo: true,
         });
-        toast.success('vendedor cadastrado');
+        toast.success('Vendedor cadastrado');
       }
       onSaved();
     } catch {
@@ -230,7 +69,7 @@ function VendedorModal({ open, onClose, vendedor, onSaved }) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="font-bold text-lg">
-            {vendedor ? 'editar vendedor' : 'novo vendedor'}
+            {vendedor ? 'Editar vendedor' : 'Novo vendedor'}
           </DialogTitle>
         </DialogHeader>
 
@@ -305,41 +144,16 @@ function VendedorModal({ open, onClose, vendedor, onSaved }) {
   );
 }
 
-const toInstanceName = (nome) =>
-  `vendedor-${nome
-    .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 30)}`;
-
 export default function AdminVendedores() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [qrModal, setQrModal] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: vendedores = [], isLoading } = useQuery({
     queryKey: ['admin-vendedores'],
     queryFn: () => api.entities.Vendedor.list({ column: 'nome', order: 'asc' }),
   });
-
-  const { data: instances = [] } = useQuery({
-    queryKey: ['evolution-instances'],
-    queryFn: () => evolutionApi.fetchInstances(),
-    refetchInterval: 20000,
-    retry: false,
-  });
-
-  const instanceStatusMap = instances.reduce((acc, item) => {
-    const name = item?.instance?.instanceName ?? item?.instanceName;
-    const state = item?.instance?.connectionStatus ?? item?.state ?? item?.instance?.state;
-    if (name) acc[name] = state;
-    return acc;
-  }, {});
-
-  const getBotStatus = (v) => instanceStatusMap[toInstanceName(v.nome)];
 
   const filtered = vendedores.filter(v =>
     !search || v.nome?.toLowerCase().includes(search.toLowerCase()) || v.cargo?.toLowerCase().includes(search.toLowerCase())
@@ -350,7 +164,7 @@ export default function AdminVendedores() {
     try {
       await api.entities.Vendedor.delete(id);
       queryClient.invalidateQueries({ queryKey: ['admin-vendedores'] });
-      toast.success('vendedor removido');
+      toast.success('Vendedor removido');
     } catch {
       toast.error('Erro ao remover');
     }
@@ -374,7 +188,7 @@ export default function AdminVendedores() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-bold text-2xl text-gray-900">vendedores</h1>
+          <h1 className="font-bold text-2xl text-gray-900">Vendedores</h1>
           <p className="text-sm text-gray-500 mt-1">{filtered.length} vendedor(es)</p>
         </div>
         <button
@@ -382,7 +196,7 @@ export default function AdminVendedores() {
           className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-gray-900 font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors"
         >
           <Plus className="h-4 w-4" />
-          novo vendedor
+          Novo vendedor
         </button>
       </div>
 
@@ -403,11 +217,10 @@ export default function AdminVendedores() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500">vendedor</th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Vendedor</th>
                 <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Cargo</th>
                 <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">WhatsApp</th>
                 <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500 hidden sm:table-cell">Status</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500 hidden lg:table-cell">Bot</th>
                 <th className="text-right px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500">Ações</th>
               </tr>
             </thead>
@@ -424,7 +237,7 @@ export default function AdminVendedores() {
                 <tr>
                   <td colSpan={5} className="px-4 py-16 text-center">
                     <User className="h-10 w-10 mx-auto text-gray-200 mb-3" />
-                    <p className="text-gray-400 text-sm">nenhum vendedor cadastrado</p>
+                    <p className="text-gray-400 text-sm">Nenhum vendedor cadastrado</p>
                   </td>
                 </tr>
               ) : filtered.map(v => (
@@ -468,48 +281,8 @@ export default function AdminVendedores() {
                       }
                     </button>
                   </td>
-                  <td className="px-4 py-3 hidden lg:table-cell">
-                    {(() => {
-                      const state = getBotStatus(v);
-                      const salvo = !!v.instance_name;
-
-                      if (state === 'open') return (
-                        <div className="flex flex-col gap-1">
-                          <span className="flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-full w-fit">
-                            <Wifi className="h-3 w-3" /> Conectado
-                          </span>
-                          {salvo && (
-                            <span className="text-[10px] text-gray-400 pl-1">{v.instance_name}</span>
-                          )}
-                        </div>
-                      );
-
-                      if (salvo) return (
-                        <div className="flex flex-col gap-1">
-                          <button onClick={() => setQrModal(v)} className="flex items-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded-full hover:bg-red-100 transition-colors w-fit">
-                            <WifiOff className="h-3 w-3" /> Desconectado
-                          </button>
-                          <span className="text-[10px] text-gray-400 pl-1">{v.instance_name}</span>
-                        </div>
-                      );
-
-                      return (
-                        <button onClick={() => setQrModal(v)} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary transition-colors">
-                          <QrCode className="h-3.5 w-3.5" />
-                          Conectar
-                        </button>
-                      );
-                    })()}
-                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => setQrModal(v)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors lg:hidden"
-                        title="Conectar WhatsApp"
-                      >
-                        <QrCode className="h-3.5 w-3.5" />
-                      </button>
                       <button
                         onClick={() => { setEditing(v); setModalOpen(true); }}
                         className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
@@ -540,12 +313,6 @@ export default function AdminVendedores() {
           setModalOpen(false);
           setEditing(null);
         }}
-      />
-
-      <QRCodeModal
-        open={!!qrModal}
-        onClose={() => setQrModal(null)}
-        vendedor={qrModal}
       />
     </div>
   );

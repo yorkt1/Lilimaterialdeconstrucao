@@ -1,16 +1,189 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
-import { LayoutDashboard, Package, ShoppingBag, Settings, Menu, X, LogOut, ChevronRight, Store, Users } from 'lucide-react';
+import { evolutionApi } from '@/lib/evolutionApi';
+import { toast } from 'sonner';
+import {
+  LayoutDashboard, Package, ShoppingBag, Settings, Menu, X,
+  LogOut, ChevronRight, Store, Users, MessageCircle, Power, Loader2, RefreshCw,
+} from 'lucide-react';
+
+const INSTANCE = import.meta.env.VITE_EVOLUTION_INSTANCE_NAME || 'lili-materiais';
 
 const NAV = [
   { path: '/admin',                 label: 'Dashboard',     icon: LayoutDashboard, exact: true },
   { path: '/admin/produtos',        label: 'Produtos',      icon: Package },
   { path: '/admin/pedidos',         label: 'Pedidos',       icon: ShoppingBag },
-  { path: '/admin/vendedores',      label: 'vendedores',    icon: Users },
+  { path: '/admin/vendedores',      label: 'Vendedores',    icon: Users },
   { path: '/admin/configuracoes',   label: 'Configurações', icon: Settings },
 ];
 
+// ── Painel WhatsApp Bot ────────────────────────────────────────────────────────
+function WhatsAppBotPanel() {
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: statusData, isLoading: loadingStatus } = useQuery({
+    queryKey: ['whatsapp-status'],
+    queryFn: () => evolutionApi.getStatus(INSTANCE),
+    refetchInterval: open ? 5000 : 60000,
+    retry: false,
+    onError: () => {},
+  });
+
+  const connected = statusData?.instance?.state === 'open';
+
+  const { data: qrData, isLoading: loadingQR, refetch: refetchQR } = useQuery({
+    queryKey: ['whatsapp-qr'],
+    queryFn: async () => {
+      try {
+        return await evolutionApi.getQRCode(INSTANCE);
+      } catch {
+        // instance may not exist yet — try creating it first
+        await evolutionApi.createInstance(INSTANCE);
+        return evolutionApi.getQRCode(INSTANCE);
+      }
+    },
+    enabled: open && !connected && !loadingStatus,
+    refetchInterval: open && !connected ? 20000 : false,
+    retry: false,
+  });
+
+  const { mutate: disconnect, isPending: disconnecting } = useMutation({
+    mutationFn: () => evolutionApi.deleteInstance(INSTANCE),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-qr'] });
+      toast.success('Robô desconectado');
+    },
+    onError: (err) => toast.error('Erro ao desconectar: ' + err.message),
+  });
+
+  const qrBase64 = qrData?.base64 ?? qrData?.qrcode?.base64;
+
+  return (
+    <>
+      {/* Botão de status no header */}
+      <button
+        onClick={() => setOpen(true)}
+        title="WhatsApp Bot"
+        className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+          loadingStatus
+            ? 'border-gray-200 text-gray-400'
+            : connected
+            ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
+            : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
+        }`}
+      >
+        <MessageCircle className="h-4 w-4" />
+        <span
+          className={`w-2 h-2 rounded-full flex-shrink-0 ${
+            loadingStatus ? 'bg-gray-300' : connected ? 'bg-green-500' : 'bg-gray-300'
+          }`}
+        />
+        <span className="hidden sm:inline">
+          {loadingStatus ? 'Bot' : connected ? 'Bot ativo' : 'Bot offline'}
+        </span>
+      </button>
+
+      {/* Modal */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+
+            {/* Header do modal */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${connected ? 'bg-green-100' : 'bg-gray-100'}`}>
+                  <MessageCircle className={`h-4 w-4 ${connected ? 'text-green-600' : 'text-gray-400'}`} />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900 text-sm">WhatsApp Bot</p>
+                  <p className={`text-[11px] font-medium ${connected ? 'text-green-600' : 'text-gray-400'}`}>
+                    {loadingStatus ? 'Verificando...' : connected ? 'Conectado' : 'Desconectado'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Conteúdo */}
+            <div className="p-5">
+              {loadingStatus ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-3 text-gray-400">
+                  <Loader2 className="h-7 w-7 animate-spin" />
+                  <p className="text-sm">Verificando conexão...</p>
+                </div>
+              ) : connected ? (
+                /* ── Estado: conectado ── */
+                <div className="flex flex-col items-center gap-5 py-4">
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                    <MessageCircle className="h-10 w-10 text-green-500" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-semibold text-gray-900">Robô ativo</p>
+                    <p className="text-sm text-gray-500 mt-1">O WhatsApp está conectado e respondendo clientes.</p>
+                  </div>
+                  <button
+                    onClick={() => disconnect()}
+                    disabled={disconnecting}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-red-200 text-red-600 hover:bg-red-50 text-sm font-semibold transition-colors disabled:opacity-60"
+                  >
+                    {disconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                    Desligar / Desconectar
+                  </button>
+                </div>
+              ) : (
+                /* ── Estado: desconectado — exibir QR ── */
+                <div className="flex flex-col items-center gap-4">
+                  <p className="text-sm text-gray-600 text-center">
+                    Escaneie o QR Code com o WhatsApp do celular da loja para conectar o robô.
+                  </p>
+
+                  {loadingQR ? (
+                    <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
+                      <Loader2 className="h-7 w-7 animate-spin" />
+                      <p className="text-xs">Gerando QR Code...</p>
+                    </div>
+                  ) : qrBase64 ? (
+                    <img
+                      src={qrBase64}
+                      alt="QR Code WhatsApp"
+                      className="w-52 h-52 rounded-xl border border-gray-100 object-contain"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
+                      <MessageCircle className="h-10 w-10 opacity-30" />
+                      <p className="text-xs text-center">QR Code não disponível.<br />Tente atualizar.</p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col items-center gap-1">
+                    <p className="text-[11px] text-gray-400">O QR atualiza automaticamente a cada 20s</p>
+                    <button
+                      onClick={() => refetchQR()}
+                      disabled={loadingQR}
+                      className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium mt-1"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${loadingQR ? 'animate-spin' : ''}`} />
+                      Atualizar QR Code
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Layout principal ───────────────────────────────────────────────────────────
 export default function AdminLayout() {
   const { user, isAdmin, isLoadingAuth, logout } = useAuth();
   const location   = useLocation();
@@ -128,15 +301,19 @@ export default function AdminLayout() {
             </span>
           </div>
 
-          <Link
-            to="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-auto flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors font-medium"
-          >
-            <Store className="h-4 w-4" />
-            Ver loja
-          </Link>
+          <div className="ml-auto flex items-center gap-3">
+            <WhatsAppBotPanel />
+
+            <Link
+              to="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors font-medium"
+            >
+              <Store className="h-4 w-4" />
+              Ver loja
+            </Link>
+          </div>
         </header>
 
         {/* Conteúdo */}

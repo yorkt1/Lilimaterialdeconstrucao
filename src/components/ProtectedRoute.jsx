@@ -1,9 +1,10 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function ProtectedRoute({ unauthenticatedElement, requireAdmin = false }) {
   const { user, isAdmin, isLoadingAuth } = useAuth();
+  const location = useLocation();
 
   if (isLoadingAuth) {
     return (
@@ -14,7 +15,7 @@ export default function ProtectedRoute({ unauthenticatedElement, requireAdmin = 
   }
 
   if (!user) {
-    return unauthenticatedElement || <Navigate to="/login" replace />;
+    return unauthenticatedElement || <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   if (requireAdmin && !isAdmin) {
