@@ -10,7 +10,7 @@ import {
   LogOut, ChevronRight, Store, Users, MessageCircle, Power, Loader2, RefreshCw, PauseCircle, PlayCircle,
 } from 'lucide-react';
 
-const INSTANCE = import.meta.env.VITE_EVOLUTION_INSTANCE_NAME || 'lili-materiais';
+const DEFAULT_INSTANCE = import.meta.env.VITE_EVOLUTION_INSTANCE_NAME || 'lili-materiais';
 
 const NAV = [
   { path: '/admin',                 label: 'Dashboard',     icon: LayoutDashboard, exact: true },
@@ -23,11 +23,23 @@ const NAV = [
 // ── Painel WhatsApp Bot ────────────────────────────────────────────────────────
 function WhatsAppBotPanel() {
   const [open, setOpen] = useState(false);
+  const [instanceName, setInstanceName] = useState(DEFAULT_INSTANCE);
+  const [editingName, setEditingName] = useState(false);
   const queryClient = useQueryClient();
 
+  // Carrega o nome salvo no Supabase
+  const { data: savedInstanceName } = useQuery({
+    queryKey: ['bot-instance-name'],
+    queryFn: () => api.config.get('evolution_instance_name'),
+    throwOnError: false,
+  });
+  useEffect(() => {
+    if (savedInstanceName) setInstanceName(savedInstanceName);
+  }, [savedInstanceName]);
+
   const { data: statusData, isLoading: loadingStatus } = useQuery({
-    queryKey: ['whatsapp-status'],
-    queryFn: () => evolutionApi.getStatus(INSTANCE),
+    queryKey: ['whatsapp-status', instanceName],
+    queryFn: () => evolutionApi.getStatus(instanceName),
     refetchInterval: 8000,
     retry: false,
     throwOnError: false,
@@ -50,36 +62,29 @@ function WhatsAppBotPanel() {
   // Detecta mudança de conexão e sincroniza bot_pausado no Supabase
   const prevConnectedRef = useRef(null);
   useEffect(() => {
-    // Só age após o primeiro status real (evita disparar na montagem)
     if (loadingStatus && !statusData) return;
     const prev = prevConnectedRef.current;
-    if (prev === null) {
-      prevConnectedRef.current = connected;
-      return;
-    }
+    if (prev === null) { prevConnectedRef.current = connected; return; }
     if (prev === connected) return;
     prevConnectedRef.current = connected;
-
     if (!connected) {
-      // Instância desconectada ou deletada (de qualquer lugar)
       api.config.set('bot_pausado', true).catch(() => {});
     } else {
-      // Reconectou — retoma o bot automaticamente
       api.config.set('bot_pausado', false).catch(() => {});
     }
   }, [connected, loadingStatus, statusData]);
 
   const { data: qrData, isLoading: loadingQR, refetch: refetchQR } = useQuery({
-    queryKey: ['whatsapp-qr'],
+    queryKey: ['whatsapp-qr', instanceName],
     queryFn: async () => {
       try {
-        return await evolutionApi.getQRCode(INSTANCE);
+        return await evolutionApi.getQRCode(instanceName);
       } catch {
-        await evolutionApi.createInstance(INSTANCE);
-        return evolutionApi.getQRCode(INSTANCE);
+        await evolutionApi.createInstance(instanceName);
+        return evolutionApi.getQRCode(instanceName);
       }
     },
-    enabled: open && !connected && !loadingStatus,
+    enabled: open && !connected && !loadingStatus && !editingName,
     refetchInterval: open && !connected ? 20000 : false,
     retry: false,
     throwOnError: false,
@@ -95,16 +100,26 @@ function WhatsAppBotPanel() {
   });
 
   const { mutate: disconnect, isPending: disconnecting } = useMutation({
-    mutationFn: () => evolutionApi.disconnectAndDelete(INSTANCE),
+    mutationFn: () => evolutionApi.disconnectAndDelete(instanceName),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] });
-      queryClient.invalidateQueries({ queryKey: ['whatsapp-qr'] });
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-status', instanceName] });
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-qr', instanceName] });
       queryClient.invalidateQueries({ queryKey: ['bot-paused'] });
       api.config.set('bot_pausado', true).catch(() => {});
       toast.success('Bot desconectado e instância removida');
     },
     onError: (err) => toast.error('Erro ao desconectar: ' + err.message),
   });
+
+  const handleSaveName = async (name) => {
+    const trimmed = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    if (!trimmed) return;
+    setInstanceName(trimmed);
+    setEditingName(false);
+    await api.config.set('evolution_instance_name', trimmed).catch(() => {});
+    queryClient.invalidateQueries({ queryKey: ['whatsapp-status', trimmed] });
+    queryClient.invalidateQueries({ queryKey: ['whatsapp-qr', trimmed] });
+  };
 
   const qrBase64 = qrData?.base64 ?? qrData?.qrcode?.base64;
 
@@ -221,11 +236,52 @@ function WhatsAppBotPanel() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-4">
+                  {/* Nome da instância */}
+                  <div className="w-full">
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Nome da instância no Evolution API
+                    </p>
+                    {editingName ? (
+                      <form
+                        onSubmit={e => { e.preventDefault(); handleSaveName(e.target.name.value); }}
+                        className="flex gap-2"
+                      >
+                        <input
+                          name="name"
+                          defaultValue={instanceName}
+                          autoFocus
+                          className="flex-1 h-9 px-3 border-2 border-primary rounded-lg text-sm font-mono focus:outline-none"
+                          placeholder="ex: lili-materiais"
+                        />
+                        <button type="submit" className="px-3 h-9 bg-primary text-gray-900 text-xs font-bold rounded-lg">
+                          OK
+                        </button>
+                        <button type="button" onClick={() => setEditingName(false)} className="px-2 h-9 text-gray-400 hover:text-gray-600">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </form>
+                    ) : (
+                      <button
+                        onClick={() => setEditingName(true)}
+                        className="flex items-center gap-2 w-full h-9 px-3 border border-dashed border-gray-300 rounded-lg text-sm font-mono text-gray-700 hover:border-primary hover:text-primary transition-colors group"
+                      >
+                        <span className="flex-1 text-left">{instanceName}</span>
+                        <span className="text-[10px] text-gray-400 group-hover:text-primary">editar</span>
+                      </button>
+                    )}
+                    <p className="text-[10px] text-gray-400 mt-1">Este nome deve ser idêntico ao criado na Evolution API.</p>
+                  </div>
+
                   <p className="text-sm text-gray-600 text-center">
                     Escaneie o QR Code com o WhatsApp do celular da loja para conectar o robô.
                   </p>
 
-                  {loadingQR ? (
+                  {editingName ? (
+                    <div className="flex flex-col items-center justify-center h-32 gap-2 text-gray-300">
+                      <MessageCircle className="h-8 w-8 opacity-30" />
+                      <p className="text-xs">Salve o nome para gerar o QR</p>
+                    </div>
+                  ) : loadingQR ? (
                     <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
                       <Loader2 className="h-7 w-7 animate-spin" />
                       <p className="text-xs">Gerando QR Code...</p>
@@ -243,17 +299,19 @@ function WhatsAppBotPanel() {
                     </div>
                   )}
 
-                  <div className="flex flex-col items-center gap-1">
-                    <p className="text-[11px] text-gray-400">O QR atualiza automaticamente a cada 20s</p>
-                    <button
-                      onClick={() => refetchQR()}
-                      disabled={loadingQR}
-                      className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium mt-1"
-                    >
-                      <RefreshCw className={`h-3 w-3 ${loadingQR ? 'animate-spin' : ''}`} />
-                      Atualizar QR Code
-                    </button>
-                  </div>
+                  {!editingName && (
+                    <div className="flex flex-col items-center gap-1">
+                      <p className="text-[11px] text-gray-400">O QR atualiza automaticamente a cada 20s</p>
+                      <button
+                        onClick={() => refetchQR()}
+                        disabled={loadingQR}
+                        className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium mt-1"
+                      >
+                        <RefreshCw className={`h-3 w-3 ${loadingQR ? 'animate-spin' : ''}`} />
+                        Atualizar QR Code
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
